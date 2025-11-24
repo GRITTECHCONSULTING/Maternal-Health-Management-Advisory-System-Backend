@@ -69,6 +69,7 @@ class LoginView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
 # Appointments View
 class CreateAppointmentView(APIView):
 
@@ -81,11 +82,11 @@ class CreateAppointmentView(APIView):
             # Send confirmation email
             subject = "Appointment Confirmation"
             message = (
-                f"Hello {appointment.full_name},\n\n"
+                f"Hello {appointment.name},\n\n"
                 f"Your appointment for {appointment.category.name} "
                 f"has been scheduled.\n\n"
-                f"📅 Date: {appointment.date}\n"
-                f"⏰ Time: {appointment.time}\n"
+                f"📅 Date: {appointment.time.date()}\n"
+                f"⏰ Time: {appointment.time.time()}\n"
                 f"📍 Category: {appointment.category.name}\n\n"
                 f"Thank you!"
             )

@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
  
 SECRET_KEY = 'django-insecure-+ylq-op1%zt!v$lh@)+bi-tc-87k)hotjzwz33$q7b40lb3e%*'
  
-DEBUG = False
+DEBUG = config('DEBUG', default=True, cast=bool)
  
 ALLOWED_HOSTS = [
     config('LAMBDA_FUNCTION_URL', default='*'),

@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 # Import the new Category model from your models file
-from .models import Category 
+from .models import Category, Appointment
 
 User = get_user_model()
 
@@ -75,3 +75,9 @@ class LoginSerializer(serializers.Serializer):
 
         data["user"] = user
         return data
+    
+# Appointment Serializer
+class AppointmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Appointment
+        fields = "__all__"

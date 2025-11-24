@@ -1,8 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import SignupSerializer, LoginSerializer, CategorySerializer
-from .models import Category # Import the Category model
+from django.core.mail import send_mail
+from django.conf import settings
+from .serializers import SignupSerializer, LoginSerializer, CategorySerializer, AppointmentSerializer
+from .models import Category, Appointment
 
 # ------------------------------------------------
 # New View for Listing Categories (GET)
@@ -64,5 +66,41 @@ class LoginView(APIView):
                     "role": getattr(user, "role", None),
                 }
             }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+# Appointments View
+class CreateAppointmentView(APIView):
+
+    def post(self, request):
+        serializer = AppointmentSerializer(data=request.data)
+
+        if serializer.is_valid():
+            appointment = serializer.save()
+
+            # Send confirmation email
+            subject = "Appointment Confirmation"
+            message = (
+                f"Hello {appointment.full_name},\n\n"
+                f"Your appointment for {appointment.category.name} "
+                f"has been scheduled.\n\n"
+                f"📅 Date: {appointment.date}\n"
+                f"⏰ Time: {appointment.time}\n"
+                f"📍 Category: {appointment.category.name}\n\n"
+                f"Thank you!"
+            )
+
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [appointment.email],
+                fail_silently=False,
+            )
+
+            appointment.is_confirmed = True
+            appointment.save()
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

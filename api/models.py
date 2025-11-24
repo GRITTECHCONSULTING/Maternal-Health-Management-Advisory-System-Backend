@@ -56,3 +56,36 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+
+# create appointemnts
+class Appointment(models.Model):
+    TIME_SLOTS = [
+        ('09:00', '9:00 AM'),
+        ('10:00', '10:00 AM'),
+        ('11:00', '11:00 AM'),
+        ('12:00', '12:00 PM'),
+        ('13:00', '1:00 PM'),
+        ('14:00', '2:00 PM'),
+        ('15:00', '3:00 PM'),
+        ('16:00', '4:00 PM'),
+        ('17:00', '5:00 PM'),
+    ]
+
+    category = models.ForeignKey("api.Category", on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone_number = models.CharField(max_length=20)
+    notes = models.TextField(blank=True)
+
+    # Date + Time selection
+    date = models.DateField()
+    time = models.CharField(max_length=10, choices=TIME_SLOTS)
+
+    # Optional: Track if confirmed
+    is_confirmed = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.date} @ {self.time}"

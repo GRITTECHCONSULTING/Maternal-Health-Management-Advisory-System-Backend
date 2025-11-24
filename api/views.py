@@ -1,107 +1,91 @@
-from rest_framework.views import APIView
+from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework import status
 from django.core.mail import send_mail
 from django.conf import settings
 from .serializers import SignupSerializer, LoginSerializer, CategorySerializer, AppointmentSerializer
 from .models import Category, Appointment
+from django.contrib.auth import authenticate
+
 
 # ------------------------------------------------
-# New View for Listing Categories (GET)
+# 1. List Categories (GET)
 # ------------------------------------------------
-class CategoryListView(APIView):
+class CategoryListView(generics.ListAPIView):
     """
-    Handles GET requests to return a list of all care categories (Prenatal, Postnatal, etc.).
-    This endpoint is public.
+    Returns a list of all care categories (Prenatal, Postnatal, etc.).
+    Public endpoint.
     """
-    def get(self, request):
-        # 1. Fetch all category objects from the database
-        # Ordering by name ensures the list is consistent
-        categories = Category.objects.all().order_by('name')
-        
-        # 2. Serialize the queryset (use many=True for a list of objects)
-        serializer = CategorySerializer(categories, many=True)
-        
-        # 3. Return the data in a successful response
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all().order_by("name")
+
 
 # ------------------------------------------------
-# Existing Authentication Views (Signup, Login)
+# 2. Signup View (POST)
 # ------------------------------------------------
-
-class SignupView(APIView):
-    """
-    Handles user registration (POST).
-    """
-    def post(self, request):
-        serializer = SignupSerializer(data=request.data)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {"message": "Account created successfully"},
-                status=status.HTTP_201_CREATED
-            )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class LoginView(APIView):
-    """
-    Handles user login and token generation/return (POST).
-    """
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-
-        if serializer.is_valid():
-            user = serializer.validated_data["user"]
-
-            return Response({
-                "message": "Login successful",
-                "user": {
-                    "id": user.id,
-                    "email": user.email,
-                    "username": user.username,
-                    # Safely retrieve the role attribute
-                    "role": getattr(user, "role", None),
-                }
-            }, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-
-# Appointments View
-class CreateAppointmentView(APIView):
+class SignupView(generics.GenericAPIView):
+    serializer_class = SignupSerializer
 
     def post(self, request):
-        serializer = AppointmentSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "Account created successfully"},
+            status=status.HTTP_201_CREATED
+        )
 
-        if serializer.is_valid():
-            appointment = serializer.save()
 
-            # Send confirmation email
-            subject = "Appointment Confirmation"
-            message = (
-                f"Hello {appointment.name},\n\n"
-                f"Your appointment for {appointment.category.name} "
-                f"has been scheduled.\n\n"
-                f"📅 Date: {appointment.time.date()}\n"
-                f"⏰ Time: {appointment.time.time()}\n"
-                f"📍 Category: {appointment.category.name}\n\n"
-                f"Thank you!"
-            )
+# ------------------------------------------------
+# 3. Login View (POST)
+# ------------------------------------------------
+class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
 
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [appointment.email],
-                fail_silently=False,
-            )
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
 
-            appointment.is_confirmed = True
-            appointment.save()
+        return Response({
+            "message": "Login successful",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "role": getattr(user, "role", None),
+            }
+        }, status=status.HTTP_200_OK)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# ------------------------------------------------
+# 4. Create Appointment (POST)
+# ------------------------------------------------
+class CreateAppointmentView(generics.CreateAPIView):
+    serializer_class = AppointmentSerializer
+    queryset = Appointment.objects.all()
+
+    def perform_create(self, serializer):
+        appointment = serializer.save()
+
+        # Send confirmation email
+        subject = "Appointment Confirmation"
+        message = (
+            f"Hello {appointment.name},\n\n"
+            f"Your appointment for {appointment.category.name} has been scheduled.\n\n"
+            f"📅 Date: {appointment.time.date()}\n"
+            f"⏰ Time: {appointment.time.time()}\n"
+            f"📍 Category: {appointment.category.name}\n\n"
+            f"Thank you!"
+        )
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [appointment.email],
+            fail_silently=False,
+        )
+
+        # Mark appointment as confirmed
+        appointment.is_confirmed = True
+        appointment.save()

@@ -1,4 +1,4 @@
-#!C:\Users\HP\Desktop\grittechbackend\mhmas\venv\Scripts\python.exe
+#!C:\Users\HP\Documents\GitHub\grittech-backend\venv\Scripts\python.exe
 
 import sys
 import json

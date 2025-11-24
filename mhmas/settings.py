@@ -20,6 +20,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'http://127.0.0.1:8000/',
+    'https://master.dvco5e2ww6po8.amplifyapp.com/',
 ]
  
 # ------------------------------------------------------------
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'api',
     'corsheaders',
+    'rest_framework_simplejwt',
     # 'storages',  # Commented out until S3 is configured
 ]
  
@@ -106,7 +108,7 @@ IS_LAMBDA = os.environ.get("AWS_LAMBDA_FUNCTION_NAME") is not None
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mhmas',  # the name you created in DataGrip
+        'NAME': 'grittech',  # the name you created in DataGrip
         'USER': 'postgres',      # your postgres username
         'PASSWORD': 'amarachi',  # your postgres password
         'HOST': 'localhost',
@@ -182,6 +184,16 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+#     'ROTATE_REFRESH_TOKENS': False,
+#     'BLACKLIST_AFTER_ROTATION': False,
+#     'ALGORITHM': 'HS256',
+#     # 'SIGNING_KEY': SECRET_KEY,  # default uses Django SECRET_KEY
+#     # other options you can tune...
+# }
+
 # ------------------------------------------------------------
 # drf-spectacular Settings (Swagger/OpenAPI)
 # ------------------------------------------------------------
@@ -220,3 +232,6 @@ LOGGING = {
 # Default Primary Key
 # ------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+AUTH_USER_MODEL = "api.User"

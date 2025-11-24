@@ -1,15 +1,30 @@
+# api/admin.py
 from django.contrib import admin
-from .models import Provider, Patient, VitalRecord, Appointment, Alert
-
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from .models import User, Patient, Provider, Category
 
 # ----------------------------
-# Provider Admin
+# Custom User Admin
 # ----------------------------
-@admin.register(Provider)
-class ProviderAdmin(admin.ModelAdmin):
-    list_display = ('user', 'hospital_name', 'specialization', 'phone', 'created_at')
-    search_fields = ('user__username', 'hospital_name', 'specialization', 'phone')
-    list_filter = ('specialization', 'created_at')
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
+    model = User
+    list_display = ('username', 'email', 'role', 'is_staff', 'is_active')
+    list_filter = ('role', 'is_staff', 'is_active')
+    fieldsets = (
+        (None, {'fields': ('username', 'email', 'password')}),
+        ('Personal Info', {'fields': ('first_name', 'last_name', 'phone_number')}),
+        ('Permissions', {'fields': ('role', 'is_staff', 'is_active', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important Dates', {'fields': ('last_login', 'date_joined')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'role', 'password1', 'password2', 'is_staff', 'is_active')}
+        ),
+    )
+    search_fields = ('username', 'email')
+    ordering = ('username',)
 
 
 # ----------------------------
@@ -17,36 +32,24 @@ class ProviderAdmin(admin.ModelAdmin):
 # ----------------------------
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'user', 'provider', 'age', 'weight', 'height', 'blood_type', 'created_at')
-    search_fields = ('full_name', 'user__username', 'provider__hospital_name', 'blood_type')
-    list_filter = ('blood_type', 'provider', 'created_at')
+    list_display = ('user', 'date_of_birth', 'address')
+    search_fields = ('user__username', 'user__email')
 
 
 # ----------------------------
-# VitalRecord Admin
+# Provider Admin
 # ----------------------------
-@admin.register(VitalRecord)
-class VitalRecordAdmin(admin.ModelAdmin):
-    list_display = ('patient', 'vital_type', 'value', 'unit', 'recorded_at')
-    search_fields = ('patient__full_name', 'vital_type')
-    list_filter = ('vital_type', 'recorded_at')
+@admin.register(Provider)
+class ProviderAdmin(admin.ModelAdmin):
+    list_display = ('user', 'specialty', 'license_number')
+    search_fields = ('user__username', 'user__email', 'specialty')
 
 
 # ----------------------------
-# Appointment Admin
+# Category Admin
 # ----------------------------
-@admin.register(Appointment)
-class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ('patient', 'provider', 'date', 'time', 'status', 'reason', 'created_at')
-    search_fields = ('patient__full_name', 'provider__user__username', 'status')
-    list_filter = ('status', 'date', 'provider')
-
-
-# ----------------------------
-# Alert Admin
-# ----------------------------
-@admin.register(Alert)
-class AlertAdmin(admin.ModelAdmin):
-    list_display = ('patient', 'alert_type', 'severity', 'resolved', 'created_at')
-    search_fields = ('patient__full_name', 'alert_type', 'message')
-    list_filter = ('severity', 'resolved', 'created_at')
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+    search_fields = ('name', 'description')

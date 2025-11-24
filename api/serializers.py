@@ -1,139 +1,77 @@
+# api/serializers.py
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import Patient, Provider, VitalRecord, Appointment, Alert
+from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate
+# Import the new Category model from your models file
+from .models import Category 
 
+User = get_user_model()
 
-# ----------------------------
-# User Serializer
-# ----------------------------
-class UserSerializer(serializers.ModelSerializer):
+# ------------------------------------------------
+# 1. New Serializer for the Category Model
+# ------------------------------------------------
+class CategorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for listing and retrieving care categories.
+    """
+    class Meta:
+        model = Category
+        # Include all fields that you want to display for the categories
+        fields = ('id', 'name', 'description', 'slug') 
+
+# ------------------------------------------------
+# 2. Existing User Serializers (Unchanged)
+# ------------------------------------------------
+
+class SignupSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
-
-
-# ----------------------------
-# Provider Serializer
-# ----------------------------
-class ProviderSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-
-    class Meta:
-        model = Provider
         fields = [
-            'id', 'user', 'hospital_name', 'specialization',
-            'phone', 'address', 'created_at'
+            "role",
+            "username",
+            "email",
+            "phone_number",
+            "password",
+            "confirm_password",
         ]
 
+    def validate(self, data):
+        if data["password"] != data["confirm_password"]:
+            raise serializers.ValidationError("Passwords do not match.")
+        return data
 
-# ----------------------------
-# Patient Serializer
-# ----------------------------
-class PatientSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    provider = ProviderSerializer(read_only=True)
+    def create(self, validated_data):
+        validated_data.pop("confirm_password")
+        password = validated_data.pop("password")
 
-    class Meta:
-        model = Patient
-        fields = [
-            'id', 'user', 'provider', 'full_name', 'age',
-            'weight', 'height', 'blood_type', 'medical_history',
-            'created_at'
-        ]
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
 
 
-# ----------------------------
-# Vital Record Serializer
-# ----------------------------
-class VitalRecordSerializer(serializers.ModelSerializer):
-    patient = PatientSerializer(read_only=True)
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
 
-    class Meta:
-        model = VitalRecord
-        fields = [
-            'id', 'patient', 'vital_type', 'value', 'unit',
-            'recorded_at', 'notes'
-        ]
+    def validate(self, data):
+        email = data.get("email")
+        password = data.get("password")
 
+        # Check if user exists
+        try:
+            user_obj = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email or password.")
 
-# ----------------------------
-# Appointment Serializer
-# ----------------------------
-class AppointmentSerializer(serializers.ModelSerializer):
-    patient = PatientSerializer(read_only=True)
-    provider = ProviderSerializer(read_only=True)
+        # Use username internally for Django authentication
+        user = authenticate(username=user_obj.username, password=password)
 
-    class Meta:
-        model = Appointment
-        fields = [
-            'id', 'patient', 'provider', 'date', 'time',
-            'status', 'reason', 'created_at'
-        ]
+        if not user:
+            raise serializers.ValidationError("Invalid email or password.")
 
-
-# ----------------------------
-# Alert Serializer
-# ----------------------------
-class AlertSerializer(serializers.ModelSerializer):
-    patient = PatientSerializer(read_only=True)
-
-    class Meta:
-        model = Alert
-        fields = [
-            'id', 'patient', 'alert_type', 'message',
-            'severity', 'created_at', 'resolved'
-        ]
-
-
-# ----------------------------
-# Registration Serializers
-# ----------------------------
-class PatientRegistrationSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
-    first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
-    phone = serializers.CharField(required=True)
-    address = serializers.CharField(required=True)
-    date_of_birth = serializers.DateField(required=True)
-    blood_group = serializers.CharField(required=False, allow_blank=True)
-    emergency_contact = serializers.CharField(required=False, allow_blank=True)
-
-
-class ProviderRegistrationSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
-    first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
-    phone = serializers.CharField(required=True)
-    specialization = serializers.CharField(required=True)
-    license_number = serializers.CharField(required=True)
-    clinic_name = serializers.CharField(required=False, allow_blank=True)
-
-
-class UnifiedRegistrationSerializer(serializers.Serializer):
-    role = serializers.ChoiceField(choices=['patient', 'provider'], required=True)
-    username = serializers.CharField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
-    first_name = serializers.CharField(required=False, allow_blank=True)
-    last_name = serializers.CharField(required=False, allow_blank=True)
-    phone = serializers.CharField(required=False, allow_blank=True)
-    # Patient fields
-    address = serializers.CharField(required=False, allow_blank=True)
-    date_of_birth = serializers.DateField(required=False, allow_null=True)
-    blood_group = serializers.CharField(required=False, allow_blank=True)
-    emergency_contact = serializers.CharField(required=False, allow_blank=True)
-    # Provider fields
-    specialization = serializers.CharField(required=False, allow_blank=True)
-    license_number = serializers.CharField(required=False, allow_blank=True)
-    clinic_name = serializers.CharField(required=False, allow_blank=True)
-
-
-class RegistrationResponseSerializer(serializers.Serializer):
-    message = serializers.CharField()
-    user = serializers.DictField()
-    profile = serializers.DictField()
-    tokens = serializers.DictField()
+        data["user"] = user
+        return data

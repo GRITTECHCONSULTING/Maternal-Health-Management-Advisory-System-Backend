@@ -108,10 +108,10 @@ IS_LAMBDA = os.environ.get("AWS_LAMBDA_FUNCTION_NAME") is not None
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'grittech',  # the name you created in DataGrip
+        'NAME': 'postgres',  # the name you created in DataGrip
         'USER': 'postgres',      # your postgres username
-        'PASSWORD': 'amarachi',  # your postgres password
-        'HOST': 'localhost',
+        'PASSWORD': 'WXWM5T5xDhc7vZqA3d77',  # your postgres password
+        'HOST': 'grittech-database.chqgg0isat9m.eu-west-2.rds.amazonaws.com',
         'PORT': '5432',
     }
 }
@@ -167,22 +167,51 @@ MEDIA_ROOT = '/tmp/media/'  # MUST use /tmp in Lambda!
 #     ]
 # }
 
+# REST_FRAMEWORK = {
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.IsAuthenticated',
+#     ],
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#         'rest_framework.authentication.SessionAuthentication',
+#     ],
+#     'DEFAULT_RENDERER_CLASSES': [
+#         'rest_framework.renderers.JSONRenderer',
+#         'rest_framework.renderers.BrowsableAPIRenderer',
+#     ],
+#     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+#     'PAGE_SIZE': 20,
+#     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+# }
+
 REST_FRAMEWORK = {
+    # Make ALL endpoints public by default
+    # (Signup/Login must be public)
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ],
+
+    # Use JWT + Session Auth (for admin & browsable API)
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
+
+    # Renderers
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
+
+    # Pagination
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+
+    # API schema (Swagger / Spectacular)
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
+
+
 
 # SIMPLE_JWT = {
 #     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),

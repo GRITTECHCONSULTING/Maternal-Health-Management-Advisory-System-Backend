@@ -1,8 +1,15 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
 from django.conf import settings
-from .serializers import SignupSerializer, LoginSerializer, CategorySerializer, AppointmentSerializer
+
+from .serializers import (
+    SignupSerializer,
+    LoginSerializer,
+    CategorySerializer,
+    AppointmentSerializer
+)
 from .models import Category, Appointment
 from django.contrib.auth import authenticate
 
@@ -20,7 +27,7 @@ class CategoryListView(generics.ListAPIView):
 
 
 # ------------------------------------------------
-# 2. Signup View (POST)
+# 2. Signup View (POST) with JWT token return
 # ------------------------------------------------
 class SignupView(generics.GenericAPIView):
     serializer_class = SignupSerializer
@@ -28,15 +35,30 @@ class SignupView(generics.GenericAPIView):
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        user = serializer.save()
+
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
         return Response(
-            {"message": "Account created successfully"},
-            status=status.HTTP_201_CREATED
+            {
+                "message": "Account created successfully",
+                "access": str(access),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "username": user.username,
+                    "role": getattr(user, "role", None),
+                },
+            },
+            status=status.HTTP_201_CREATED,
         )
 
 
 # ------------------------------------------------
-# 3. Login View (POST)
+# 3. Login View (POST) with JWT token return
 # ------------------------------------------------
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
@@ -46,15 +68,24 @@ class LoginView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
 
-        return Response({
-            "message": "Login successful",
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "username": user.username,
-                "role": getattr(user, "role", None),
-            }
-        }, status=status.HTTP_200_OK)
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        return Response(
+            {
+                "message": "Login successful",
+                "access": str(access),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "username": user.username,
+                    "role": getattr(user, "role", None),
+                }
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 # ------------------------------------------------
@@ -86,6 +117,6 @@ class CreateAppointmentView(generics.CreateAPIView):
             fail_silently=False,
         )
 
-        # Mark appointment as confirmed
+        # Mark as confirmed
         appointment.is_confirmed = True
         appointment.save()

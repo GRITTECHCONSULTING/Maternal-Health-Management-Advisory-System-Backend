@@ -6,24 +6,38 @@ User = get_user_model()
 
 
 # ------------------------------------------------
+# 0. User Serializer (Used for /auth/me and optional nested returns)
+# ------------------------------------------------
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "phone_number", "role"]
+
+    swagger_schema_fields = {
+        "example": {
+            "id": 1,
+            "username": "john_doe",
+            "email": "john@example.com",
+            "phone_number": "08012345678",
+            "role": "patient"
+        }
+    }
+
+
+# ------------------------------------------------
 # 1. Category Serializer
 # ------------------------------------------------
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ("id", "name", "description", "slug")
-        extra_kwargs = {
-            "name": {"help_text": "Name of the category"},
-            "description": {"help_text": "Description of the category"},
-            "slug": {"help_text": "URL-friendly slug"},
-        }
 
     swagger_schema_fields = {
         "example": {
             "id": 1,
             "name": "Prenatal Care",
-            "description": "Care for pregnant women",
-            "slug": "prenatal-care"
+            "description": "Care provided to pregnant women.",
+            "slug": "prenatal-care",
         }
     }
 
@@ -35,7 +49,8 @@ class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
         help_text="User password",
-        style={"input_type": "password"}
+        style={"input_type": "password"},
+        min_length=8
     )
     confirm_password = serializers.CharField(
         write_only=True,
@@ -53,12 +68,6 @@ class SignupSerializer(serializers.ModelSerializer):
             "password",
             "confirm_password",
         ]
-        extra_kwargs = {
-            "role": {"help_text": "User role"},
-            "username": {"help_text": "Username"},
-            "email": {"help_text": "Email address"},
-            "phone_number": {"help_text": "Phone number"},
-        }
 
     swagger_schema_fields = {
         "example": {
@@ -67,10 +76,11 @@ class SignupSerializer(serializers.ModelSerializer):
             "email": "john@example.com",
             "phone_number": "08012345678",
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
     }
 
+    # validate password match
     def validate(self, data):
         if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError("Passwords do not match.")
@@ -79,6 +89,7 @@ class SignupSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop("confirm_password")
         password = validated_data.pop("password")
+
         user = User(**validated_data)
         user.set_password(password)
         user.save()
@@ -107,13 +118,13 @@ class LoginSerializer(serializers.Serializer):
         email = data.get("email", "").lower()
         password = data.get("password")
 
-        # Check if user exists
+        # Check if email exists
         try:
             user_obj = User.objects.get(email=email)
         except User.DoesNotExist:
             raise serializers.ValidationError("Invalid email or password.")
 
-        # Authenticate using username (Django default)
+        # Django uses username for authentication
         user = authenticate(username=user_obj.username, password=password)
 
         if not user:
@@ -127,25 +138,24 @@ class LoginSerializer(serializers.Serializer):
 # 4. Appointment Serializer
 # ------------------------------------------------
 class AppointmentSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Appointment
         fields = "__all__"
 
     swagger_schema_fields = {
         "example": {
-            "name": "John Doe",
-            "email": "john@example.com",
-            "time": "2025-11-25T14:00:00Z",
-            "note": "First appointment",
-            "category": 1
+            "name": "Sarah James",
+            "email": "sarah@example.com",
+            "time": "2025-12-20T14:00:00Z",
+            "note": "Follow-up appointment",
+            "category": 1,
         }
     }
 
     def validate_time(self, value):
         if value.hour < 9 or value.hour >= 17:
             raise serializers.ValidationError(
-                "Appointments must be between 9 AM and 5 PM."
+                "Appointments must be scheduled between 9 AM and 5 PM."
             )
         return value
 
